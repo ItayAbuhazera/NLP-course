@@ -17,14 +17,40 @@ model = 'grok-3-mini'
 # --- Define Pydantic Models for Structured Output ---
 
 # --- Define the Universal Dependencies POS Tagset (17 core tags) as an enum ---
-# class UDPosTag(str, Enum):
-    # TODO
+class UDPosTag(str, Enum):
+    """Universal Dependencies POS tags (17 core tags)"""
+    ADJ = "ADJ"     # adjective
+    ADP = "ADP"     # adposition (preposition, postposition)
+    ADV = "ADV"     # adverb
+    AUX = "AUX"     # auxiliary verb
+    CCONJ = "CCONJ" # coordinating conjunction
+    DET = "DET"     # determiner
+    INTJ = "INTJ"   # interjection
+    NOUN = "NOUN"   # noun
+    NUM = "NUM"     # numeral
+    PART = "PART"   # particle
+    PRON = "PRON"   # pronoun
+    PROPN = "PROPN" # proper noun
+    PUNCT = "PUNCT" # punctuation
+    SCONJ = "SCONJ" # subordinating conjunction
+    SYM = "SYM"     # symbol
+    VERB = "VERB"   # verb
+    X = "X"         # other
 
-# TODO Define more Pydantic models for structured output
+
+class TokenPOS(BaseModel):
+    """A token with its POS tag."""
+    token: str = Field(description="The token text.")
+    pos_tag: UDPosTag = Field(description="The Universal Dependencies POS tag.")
+
+class SentencePOS(BaseModel):
+    """A sentence with its tokenized and POS-tagged components."""
+    tokens: List[TokenPOS] = Field(description="The list of tokens with their POS tags.")
+    text: Optional[str] = Field(description="The original sentence text.", default=None)
+
 class TaggedSentences(BaseModel):
     """Represents a list of sentences with their tagged tokens."""
-    # sentences: List[SentencePOS] = Field(description="A list of sentences, each containing tagged tokens.")
-
+    sentences: List[SentencePOS] = Field(description="A list of sentences, each containing tagged tokens.")
 
 
 # --- Configure the Grok API ---
@@ -76,12 +102,79 @@ def tag_sentences_ud(text_to_tag: str) -> Optional[TaggedSentences]:
         A SentencePOS object containing the tagged tokens, or None if an error occurs.
     """
     # Construct the prompt
-    prompt = f"""TODO"""
+    prompt = f"""You are an expert linguistic annotator specializing in Part-of-Speech (POS) tagging according to Universal Dependencies (UD) guidelines.
+    TASK: Analyze the given text by:
+    1. Splitting it into sentences
+    2. Tokenizing each sentence according to UD tokenization guidelines
+    3. Assigning the correct UD POS tag to each token
+
+    TOKENIZATION GUIDELINES:
+    - Split contractions: "don't" → "do n't", "I'll" → "I 'll"
+    - Split punctuation from words: "word." → "word ."
+    - Split hyphens in most cases: "full-fledged" → "full - fledged"
+    - Keep special entities intact (emails, URLs, etc.)
+
+    UNIVERSAL DEPENDENCIES POS TAGS:
+    - ADJ: adjective (e.g., big, old, green)
+    - ADP: adposition (e.g., in, to, during)
+    - ADV: adverb (e.g., very, tomorrow, down)
+    - AUX: auxiliary verb (e.g., is, has, will)
+    - CCONJ: coordinating conjunction (e.g., and, or, but)
+    - DET: determiner (e.g., a, the, this)
+    - INTJ: interjection (e.g., psst, ouch, wow)
+    - NOUN: noun (e.g., girl, cat, tree)
+    - NUM: numeral (e.g., 1, 2017, one)
+    - PART: particle (e.g., 's, not, n't)
+    - PRON: pronoun (e.g., I, you, he)
+    - PROPN: proper noun (e.g., Mary, John, Google)
+    - PUNCT: punctuation (e.g., ., (, ))
+    - SCONJ: subordinating conjunction (e.g., if, while, that)
+    - SYM: symbol (e.g., $, %, =)
+    - VERB: verb (e.g., run, eat)
+    - X: other (e.g., foreign words, abbreviations)
+
+    FORMATTING:
+    Return the result as a structured JSON object following this exact format:
+    {
+    "sentences": [
+        {
+        "text": "Original sentence text.",
+        "tokens": [
+            {"token": "Original", "pos_tag": "ADJ"},
+            {"token": "sentence", "pos_tag": "NOUN"},
+            {"token": "text", "pos_tag": "NOUN"},
+            {"token": ".", "pos_tag": "PUNCT"}
+        ]
+        }
+    ]
+    }
+
+    EXAMPLES:
+    Input: "I don't want to go."
+    Output: 
+    {
+    "sentences": [
+        {
+        "text": "I don't want to go.",
+        "tokens": [
+            {"token": "I", "pos_tag": "PRON"},
+            {"token": "do", "pos_tag": "AUX"},
+            {"token": "n't", "pos_tag": "PART"},
+            {"token": "want", "pos_tag": "VERB"},
+            {"token": "to", "pos_tag": "PART"},
+            {"token": "go", "pos_tag": "VERB"},
+            {"token": ".", "pos_tag": "PUNCT"}
+        ]
+        }
+    ]
+    }    
+    """
+
     completion = client.beta.chat.completions.parse(
         model="grok-3",
         messages=[
             {"role": "system", "content": prompt},
-            {"role": "user", "content": text_to_tag},
+            {"role": "user", "content": f"Now, analyze the following text: {text_to_tag}"},
         ],
         response_format=TaggedSentences,
     )
@@ -108,14 +201,15 @@ which is the best burger chain in the chicago metro area like for example burger
 
     if tagged_result:
         print("\n--- Tagging Results ---")
-        for s in tagged_result.sentences:
-            # TODO: Retrieve tokens and tags from each sentence:
-            # for ...
-                token = ""  # TODO
-                tag = ""    # TODO
+        for sentence in tagged_result.sentences:
+            print(f"\nSentence: {sentence.text if sentence.text else 'N/A'}")
+            print("-" * 50)
+            for token_pos in sentence.tokens:
+                token = token_pos.token
+                tag = token_pos.pos_tag
                 # Handle potential None for pos_tag if model couldn't assign one
                 ctag = tag if tag is not None else "UNKNOWN"
                 print(f"Token: {token:<15} {str(ctag)}")
-                print("----------------------")
+            print("-" * 50)
     else:
         print("\nFailed to get POS tagging results.")
