@@ -185,7 +185,7 @@ def tag_sentences_ud(text_to_tag: str) -> Optional[TaggedSentences]:
 if __name__ == "__main__":
     # example_text = "The quick brown fox jumps over the lazy dog."
     example_text = "What if Google expanded on its search-engine (and now e-mail) wares into a full-fledged operating system?"
-    # example_text = "Google Search is a web search engine developed by Google LLC."
+    example_text2 = "Google Search is a web search engine developed by Google LLC."
     # example_text = "החתול המהיר קופץ מעל הכלב העצלן." # Example in Hebrew
 
     print(f"\nTagging text: \"{example_text}\"")
@@ -200,6 +200,7 @@ if __name__ == "__main__":
             for token_pos in sentence.tokens:
                 token = token_pos.token
                 tag = token_pos.pos_tag
+
                 # Handle potential None for pos_tag if model couldn't assign one
                 ctag = tag if tag is not None else "UNKNOWN"
                 print(f"Token: {token:<15} {str(ctag)}")
