@@ -289,6 +289,17 @@ The difference consists in passing these strings to the LLM as input:
 1. Test the performance of the LLM tagger on the original sentences. 
 Do you need to update the evaluation metrics for this new setting?
 Collect sentences that fail with original sentences and succeeded with the tokenized version.
+Yes, evaluation metrics must be updated because:
+
+Token alignment issues: The number and boundaries of tokens differ between predictions and gold standard
+Many-to-one mappings: A single gold token may map to multiple LLM tokens
+
+New metrics should include:
+
+Segmentation accuracy: How well token boundaries match
+Aligned tag accuracy: Only compare tags for aligned tokens
+Character span coverage: What percentage of characters are correctly tagged
+
 2. Prepare an LLM segmenter model: given an original sentence, it must return a tokenized list of tokens according to the CoNLL segmentation guidelines in a JSON format. The tokenization and word segmentation guidelines used in English for the Universal Dependency annotations are given in https://universaldependencies.org/en/index.html.  Define evaluation metrics for this task and report the performance on the set of sentences where tagging failed in the evaluation above.  
     1. Use a few-shots strategy for this task: give a few examples (up to 3) of input/output pairs (original sentence, segmented sentence) and then ask the model to segment based on these examples.  In this strategy, you add the instruction in the "system" part of the invocation, and the examples in the "user" part.
     2. [OPTIONAL] It helps to select examples that are as similar as possible to the sentence to be segmented. The way to implement this "example selection" means that you prepare a list of "good examples" to illustrate how to deal with complex cases; given the sentence to be segmented, you select the top-3 most similar sentences based on a "similarity" function which identifies "relevant" examples.  Implement this strategy and explain your assumptions about "relevance" in this context.

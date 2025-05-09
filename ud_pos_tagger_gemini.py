@@ -4,7 +4,7 @@ from google import genai
 from pydantic import BaseModel, Field
 from typing import List, Literal, Optional
 from enum import Enum
-# 
+#
 gemini_model = 'gemini-2.0-flash-lite'
 
 # --- Define Pydantic Models for Structured Output ---
@@ -48,7 +48,7 @@ class TaggedSentences(BaseModel):
     sentences: List[SentencePOS] = Field(description="A list of sentences, each containing tagged tokens.")
 
 # --- Configure the Gemini API ---
-# Get a key https://aistudio.google.com/plan_information 
+# Get a key https://aistudio.google.com/plan_information
 # Use os.environ.get for production environments.
 # For Colab/AI Studio, you might use userdata.get
 # Example:
@@ -66,8 +66,8 @@ try:
         # Replace with your actual key if needed, but environment variables are safer
         api_key = "YOUR_API_KEY"
         if api_key == "YOUR_API_KEY":
-           print("⚠️ Warning: API key not found in environment variables. Using placeholder.")
-           print("   Please set the GOOGLE_API_KEY environment variable or replace 'YOUR_API_KEY' in the code.")
+            print("⚠️ Warning: API key not found in environment variables. Using placeholder.")
+            print("   Please set the GOOGLE_API_KEY environment variable or replace 'YOUR_API_KEY' in the code.")
 
     genai.configure(api_key=api_key)
 
@@ -183,14 +183,14 @@ def tag_sentences_ud(text_to_tag: str) -> Optional[TaggedSentences]:
 
 # --- Example Usage ---
 if __name__ == "__main__":
-    # example_text = "The quick brown fox jumps over the lazy dog."
-    example_text = "What if Google expanded on its search-engine (and now e-mail) wares into a full-fledged operating system?"
+    example_text = "The quick brown fox jumps 'over' the lazy dog."
+    #example_text = "What if Google expanded on its search-engine (and now e-mail) wares into a full-fledged operating system?"
     example_text2 = "Google Search is a web search engine developed by Google LLC."
     # example_text = "החתול המהיר קופץ מעל הכלב העצלן." # Example in Hebrew
 
     print(f"\nTagging text: \"{example_text}\"")
 
-    tagged_result = tag_sentences_ud(example_text)
+    tagged_result = tag_sentences_ud(example_text + example_text2)
 
     if tagged_result:
         print("\n--- Tagging Results ---")
