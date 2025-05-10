@@ -70,7 +70,7 @@ try:
     if not api_key:
         # Fallback or specific instruction for local setup
         # Replace with your actual key if needed, but environment variables are safer
-        api_key = "YOUR_API_KEY"
+        api_key = "xai-YOUR_API_KEY"
         if api_key == "YOUR_API_KEY":
            print("⚠️ Warning: API key not found in environment variables. Using placeholder.")
            print("   Please set the GROK_API_KEY environment variable or replace 'YOUR_API_KEY' in the code.")
@@ -171,7 +171,7 @@ def tag_sentences_ud(text_to_tag: str) -> Optional[TaggedSentences]:
     """
 
     completion = client.beta.chat.completions.parse(
-        model="grok-3",
+        model="grok-3-mini",
         messages=[
             {"role": "system", "content": prompt},
             {"role": "user", "content": f"Now, analyze the following text: {text_to_tag}"},
