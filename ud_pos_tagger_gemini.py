@@ -172,7 +172,7 @@ def tag_sentences_ud(text_to_tag: str) -> Optional[TaggedSentences]:
     {text_to_tag}
     """
 
-    client = genai.Client(api_key=api_key)
+    client = genai.Client(api_key="AIzaSyAy37bTUrkWZY6pvc7gj90djP_3AEsL0Cg")
     response = client.models.generate_content(
         model=gemini_model,
         contents=prompt,
@@ -234,7 +234,7 @@ def segment_sentences_with_llm_api(
                     {text_for_llm_processing}
                     """
     try:
-        client = genai.Client(api_key=api_key_val)
+        client = genai.Client(api_key="AIzaSyAy37bTUrkWZY6pvc7gj90djP_3AEsL0Cg")
         response = client.models.generate_content(
             model=model_name_val,
             contents=prompt_to_llm,
@@ -325,7 +325,7 @@ The JSON MUST follow this exact format with no additional text:
 # Update your `call_segmenter` to use this
 def call_segmenter(sentences: List[str], examples: List[dict], api_key_val: str, model_name_val: str) -> Optional[SegmenterLLMResponse]:
     # First validate the API credentials
-    if not api_key_val or api_key_val == "YOUR_API_KEY":
+    if not api_key_val or api_key_val == "AIzaSyAy37bTUrkWZY6pvc7gj90djP_3AEsL0Cg":
         print("Error: Invalid API key provided")
         return None
         
