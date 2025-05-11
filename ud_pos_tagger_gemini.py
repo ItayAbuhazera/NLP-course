@@ -8,6 +8,14 @@ from enum import Enum
 gemini_model = 'gemini-2.0-flash-lite'
 
 # --- Define Pydantic Models for Structured Output ---
+class SegmentedTokenOutput(BaseModel):
+    """Represents a single tokenized sentence."""
+    original_text: str = Field(description="The original input sentence text.")
+    tokens: List[str] = Field(description="The list of segmented tokens according to UD guidelines.")
+
+class SegmenterLLMResponse(BaseModel):
+    """The structured response from the LLM for segmentation."""
+    segmented_sentences: List[SegmentedTokenOutput] = Field(description="A list of segmented sentences.")
 
 # --- Define the Universal Dependencies POS Tagset (17 core tags) as an enum ---
 class UDPosTag(str, Enum):
@@ -180,6 +188,178 @@ def tag_sentences_ud(text_to_tag: str) -> Optional[TaggedSentences]:
     res: TaggedSentences = response.parsed
     return res
 
+def segment_sentences_with_llm_api(
+    sentences_to_segment: List[str],
+    few_shot_examples: List[dict],
+    system_instruction: str,
+    api_key_val: str,
+    model_name_val: str
+) -> Optional[SegmenterLLMResponse]:
+    if not sentences_to_segment:
+        return SegmenterLLMResponse(segmented_sentences=[])
+
+    # Create prompt with examples
+    user_prompt_parts = ["Here are some examples of tokenization according to UD guidelines:"]
+    for ex in few_shot_examples:
+        user_prompt_parts.append(f"Original: {ex['original']}")
+        user_prompt_parts.append(f"Tokenized: {ex['tokenized']}")
+        user_prompt_parts.append("")
+
+    user_prompt_parts.append("Please tokenize the following sentences according to the same guidelines. For each sentence, provide its original text and the list of segmented tokens.")
+    
+    # Prepare sentences for processing
+    text_for_llm_processing = ""
+    for sent_text in sentences_to_segment:
+        text_for_llm_processing += f"Original: {sent_text}\n"
+
+    # Full prompt with clear JSON instructions
+    prompt_to_llm = f"""{system_instruction}
+                    {'\n'.join(user_prompt_parts)}
+                    
+                    You must provide the output as a single JSON object strictly following this schema:
+                    {{
+                    "segmented_sentences": [
+                        {{
+                        "original_text": "The first sentence you processed.",
+                        "tokens": ["The", "first", "sentence", "you", "processed", "."]
+                        }},
+                        {{
+                        "original_text": "Another example sentence.",
+                        "tokens": ["Another", "example", "sentence", "."]
+                        }}
+                    ]
+                    }}
+                    
+                    Now, process the following text block and produce the JSON output:
+                    {text_for_llm_processing}
+                    """
+    try:
+        client = genai.Client(api_key=api_key_val)
+        response = client.models.generate_content(
+            model=model_name_val,
+            contents=prompt_to_llm,
+            generation_config=genai.types.GenerationConfig(
+                response_mime_type='application/json',
+                response_schema=SegmenterLLMResponse,
+            )
+        )
+        
+        # For debugging - add this line to see raw response
+        print("Raw response from LLM:", response.text[:200], "...")
+        
+        if response.parsed:
+            return response.parsed
+        else:
+            # Manual parsing fallback if structured parsing fails
+            try:
+                text = response.text
+                # Handle if response is wrapped in markdown code blocks
+                if "```json" in text:
+                    import re
+                    json_match = re.search(r"```json\s*([\s\S]*?)\s*```", text)
+                    if json_match:
+                        text = json_match.group(1)
+                elif "```" in text:
+                    import re
+                    json_match = re.search(r"```\s*([\s\S]*?)\s*```", text)
+                    if json_match:
+                        text = json_match.group(1)
+                
+                import json
+                parsed_json = json.loads(text)
+                
+                # Create a proper SegmenterLLMResponse object
+                segmented_sentences = []
+                for sent in parsed_json.get("segmented_sentences", []):
+                    segmented_sentences.append(
+                        SegmentedTokenOutput(
+                            original_text=sent.get("original_text", ""),
+                            tokens=sent.get("tokens", [])
+                        )
+                    )
+                
+                return SegmenterLLMResponse(segmented_sentences=segmented_sentences)
+            except Exception as e:
+                print(f"Manual parsing also failed: {e}")
+                print(f"Response text sample: {response.text[:200]}")
+                return None
+
+    except Exception as e:
+        print(f"Error during LLM segmentation API call: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+
+def create_segmenter_prompt():
+    """Create a system prompt for the segmenter"""
+    return """You are an expert computational linguistics segmenter specializing in tokenization for the Universal Dependencies framework.
+
+Your task is to tokenize sentences according to the Universal Dependencies guidelines for English:
+
+1. Split punctuation from words: "word." → "word ."
+2. Split contractions: "don't" → "do n't", "I'll" → "I 'll", "she's" → "she 's"
+3. Split hyphens in some cases:
+   a. Split modifiers: "full-fledged" → "full - fledged"
+   b. Split bracketed expressions: "(and now)" → "( and now )"
+4. Keep some compound terms intact:
+   a. Keep emails and URLs as single tokens
+   b. Keep numbers with decimal points together: "3.14"
+   c. Keep dates together: "2022-03-15"
+
+You must respond with a JSON object containing the tokenized version of each input sentence.
+The JSON MUST follow this exact format with no additional text:
+{
+  "segmented_sentences": [
+    {
+      "original_text": "Original sentence 1.",
+      "tokens": ["Original", "sentence", "1", "."]
+    },
+    {
+      "original_text": "Original sentence 2.",
+      "tokens": ["Original", "sentence", "2", "."]
+    }
+  ]
+}
+"""
+# Update your `call_segmenter` to use this
+def call_segmenter(sentences: List[str], examples: List[dict], api_key_val: str, model_name_val: str) -> Optional[SegmenterLLMResponse]:
+    # First validate the API credentials
+    if not api_key_val or api_key_val == "YOUR_API_KEY":
+        print("Error: Invalid API key provided")
+        return None
+        
+    if not model_name_val:
+        print("Error: Invalid model name provided")
+        return None
+    
+    system_prompt = create_segmenter_prompt()
+    
+    try:
+        segmented_data = segment_sentences_with_llm_api(
+            sentences, examples, system_prompt, api_key_val, model_name_val
+        )
+        
+        if not segmented_data or not segmented_data.segmented_sentences:
+            print("Warning: No valid segmentation data returned. Using fallback tokenization.")
+            # Simple fallback tokenization as a last resort
+            import re
+            segmented_sentences = []
+            for sentence in sentences:
+                # Basic tokenizer as fallback
+                tokens = re.findall(r'\b\w+\b|[^\w\s]', sentence)
+                segmented_sentences.append(
+                    SegmentedTokenOutput(
+                        original_text=sentence,
+                        tokens=tokens
+                    )
+                )
+            return SegmenterLLMResponse(segmented_sentences=segmented_sentences)
+        
+        return segmented_data
+    except Exception as e:
+        print(f"Error in call_segmenter: {e}")
+        return None
 
 # --- Example Usage ---
 if __name__ == "__main__":
