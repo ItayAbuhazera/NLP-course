@@ -100,8 +100,9 @@ def tag_sentences_ud(text_to_tag: str) -> Optional[TaggedSentences]:
     Returns:
         A TaggedSentences object containing the tagged tokens, or None if an error occurs.
     """
-    # Construct the prompt
+    
     prompt = f"""You are an expert linguistic annotator specializing in Part-of-Speech (POS) tagging according to Universal Dependencies (UD) guidelines.
+
     TASK: Analyze the given text by:
     1. Splitting it into sentences
     2. Tokenizing each sentence according to UD tokenization guidelines
@@ -134,39 +135,19 @@ def tag_sentences_ud(text_to_tag: str) -> Optional[TaggedSentences]:
 
     FORMATTING:
     Return the result as a structured JSON object following this exact format:
-    {{
+    {
       "sentences": [
-        {{
+        {
           "text": "Original sentence text.",
           "tokens": [
-            {{"token": "Original", "pos_tag": "ADJ"}},
-            {{"token": "sentence", "pos_tag": "NOUN"}},
-            {{"token": "text", "pos_tag": "NOUN"}},
-            {{"token": ".", "pos_tag": "PUNCT"}}
+            {"token": "Original", "pos_tag": "ADJ"},
+            {"token": "sentence", "pos_tag": "NOUN"},
+            {"token": "text", "pos_tag": "NOUN"},
+            {"token": ".", "pos_tag": "PUNCT"}
           ]
-        }}
+        }
       ]
-    }}
-
-    EXAMPLES:
-    Input: "I don't want to go."
-    Output: 
-    {{
-      "sentences": [
-        {{
-          "text": "I don't want to go.",
-          "tokens": [
-            {{"token": "I", "pos_tag": "PRON"}},
-            {{"token": "do", "pos_tag": "AUX"}},
-            {{"token": "n't", "pos_tag": "PART"}},
-            {{"token": "want", "pos_tag": "VERB"}},
-            {{"token": "to", "pos_tag": "PART"}},
-            {{"token": "go", "pos_tag": "VERB"}},
-            {{"token": ".", "pos_tag": "PUNCT"}}
-          ]
-        }}
-      ]
-    }}
+    }
 
     Now, analyze the following text:
     {text_to_tag}
