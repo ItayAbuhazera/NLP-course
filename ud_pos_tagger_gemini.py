@@ -135,19 +135,19 @@ def tag_sentences_ud(text_to_tag: str) -> Optional[TaggedSentences]:
 
     FORMATTING:
     Return the result as a structured JSON object following this exact format:
-    {
+    {{
       "sentences": [
-        {
+        {{
           "text": "Original sentence text.",
           "tokens": [
-            {"token": "Original", "pos_tag": "ADJ"},
-            {"token": "sentence", "pos_tag": "NOUN"},
-            {"token": "text", "pos_tag": "NOUN"},
-            {"token": ".", "pos_tag": "PUNCT"}
+            {{"token": "Original", "pos_tag": "ADJ"}},
+            {{"token": "sentence", "pos_tag": "NOUN"}},
+            {{"token": "text", "pos_tag": "NOUN"}},
+            {{"token": ".", "pos_tag": "PUNCT"}}
           ]
-        }
+        }}
       ]
-    }
+    }}
 
     Now, analyze the following text:
     {text_to_tag}
@@ -194,8 +194,9 @@ def segment_sentences_with_llm_api(
         text_for_llm_processing += f"Original: {sent_text}\n"
 
     # Full prompt with clear JSON instructions
+    user_prompt_str = '\n'.join(user_prompt_parts)
     prompt_to_llm = f"""{system_instruction}
-                    {'\n'.join(user_prompt_parts)}
+                    {user_prompt_str}
                     
                     You must provide the output as a single JSON object strictly following this schema:
                     {{
